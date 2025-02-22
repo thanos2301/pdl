@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Add your models here
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile   Profile? // One-to-one relation with Profile
+}
+
+model Profile {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  gender    String?
+  dob       DateTime?
+  country   String?
+  height    Float?   // in cm
+  weight    Float?   // in kg
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    Int      @unique    // Foreign key to User
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+} 
