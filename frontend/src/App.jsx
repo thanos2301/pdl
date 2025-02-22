@@ -7,6 +7,8 @@ import Hero from './components/Hero';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
 import Profile from './components/Profile';
+import Rehabilitation from './components/Rehabilitation';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -20,6 +22,14 @@ function App() {
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/profile" element={<Profile />} />
+              <Route 
+                path="/rehabilitation" 
+                element={
+                  <ProtectedRoute>
+                    <Rehabilitation />
+                  </ProtectedRoute>
+                } 
+              />
             </Routes>
           </div>
         </BrowserRouter>

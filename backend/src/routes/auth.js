@@ -1,11 +1,14 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { auth } from '../middleware/auth.js';
+import multer from 'multer';
+import { Readable } from 'stream';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+const upload = multer();
 
 // Sign Up
 router.post('/signup', async (req, res) => {
@@ -158,6 +161,94 @@ router.put('/profile', auth, async (req, res) => {
   } catch (err) {
     console.error('Profile update error:', err);
     res.status(500).json({ error: 'Error updating profile' });
+  }
+});
+
+// Get rehabilitation info with audio
+router.get('/rehabilitation', auth, async (req, res) => {
+  try {
+    const rehab = await prisma.rehabilitation.findUnique({
+      where: { userId: req.userId }
+    });
+
+    if (!rehab) {
+      return res.json({ description: '' });
+    }
+
+    // Convert audio buffer to base64 if it exists
+    const response = {
+      ...rehab,
+      audioRecording: rehab.audioRecording 
+        ? {
+            data: rehab.audioRecording.toString('base64'),
+            mimeType: rehab.audioMimeType
+          }
+        : null
+    };
+
+    res.json(response);
+  } catch (err) {
+    console.error('Rehabilitation fetch error:', err);
+    res.status(500).json({ error: 'Error fetching rehabilitation information' });
+  }
+});
+
+// Save rehabilitation info with audio
+router.post('/rehabilitation', auth, upload.single('audio'), async (req, res) => {
+  try {
+    const { description } = req.body;
+
+    if (!description?.trim()) {
+      return res.status(400).json({ error: 'Description is required' });
+    }
+
+    let audioBuffer = null;
+    let audioMimeType = null;
+
+    if (req.file) {
+      audioBuffer = req.file.buffer;
+      audioMimeType = req.file.mimetype;
+    }
+
+    const rehab = await prisma.rehabilitation.upsert({
+      where: { userId: req.userId },
+      update: {
+        description,
+        audioRecording: audioBuffer,
+        audioMimeType
+      },
+      create: {
+        userId: req.userId,
+        description,
+        audioRecording: audioBuffer,
+        audioMimeType
+      }
+    });
+
+    res.json(rehab);
+  } catch (err) {
+    console.error('Rehabilitation save error:', err);
+    res.status(500).json({ error: 'Error saving rehabilitation information' });
+  }
+});
+
+// Speech to text endpoint
+router.post('/speech-to-text', auth, async (req, res) => {
+  try {
+    // Get the audio file from the request
+    if (!req.files || !req.files.audio) {
+      return res.status(400).json({ error: 'No audio file provided' });
+    }
+
+    const audioFile = req.files.audio;
+
+    // For now, return a simple response
+    // In production, you would want to use a proper speech-to-text service
+    res.json({ text: "Speech to text conversion is not yet implemented." });
+
+  } catch (err) {
+    console.error('Speech to text error:', err);
+    res.status(500).json({ error: 'Error processing speech to text' });
   }
 });
 
